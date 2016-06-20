@@ -31,7 +31,7 @@ function sendSMS(sendFrom, body){
 		},
 		form: {
 			recipients: phonenumber,
-			originator: sendFrom,
+			originator: '+447860039047',
 			body: body
 		}
 	},
@@ -67,12 +67,14 @@ setTimeout(function (){
 },1000);
 
 app.get('/deactivate',function(req, res, next){
+	SMS_SENDING = false;
 	console.log('Frakoblet SMS');
 	sendSMS('Messenger', 'Frakoblet SMS');
 	res.send('message');
 });
 
 app.get('/activate',function(req, res, next){
+	SMS_SENDING = true;
 	console.log('SMS er tilbage');
 	sendSMS('Messenger', 'SMS er tilbage');
 	res.send('message');
@@ -202,7 +204,7 @@ if(true){
 								},
 								form: {
 									recipients: phonenumber,
-									originator: 'msgfrom',
+									originator: '+447860039047',
 									body: text
 								}
 							},
