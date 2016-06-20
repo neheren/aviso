@@ -22,6 +22,7 @@ var phonenumber = 4524402011;
 var facebookfriends;
 
 
+
 function sendSMS(sendFrom, body){
 	request.post({
 		url:'https://rest.messagebird.com/messages', 
@@ -53,7 +54,6 @@ console.log('virker?');
 setTimeout(function (){
 	login({email: user, password: pass}, function callback (err, api) {
   	if(err){
-  		nameList();
   		//console.log(err);
   		return console.log('trying again');
   	} 
@@ -63,8 +63,21 @@ setTimeout(function (){
     		console.log(facebookfriends);
   	});
 });
+
 },1000);
 
+app.get('/reload',function(req, res, next){
+	login({email: user, password: pass}, function callback (err, api) {
+  	if(err){
+  		//console.log(err);
+  		return console.log('trying again');
+  	} 
+ 	 	api.getFriendsList(function(err, data) {
+   			if(err) return console.error(err);
+    		facebookfriends = _.toArray(data);
+    		console.log(facebookfriends);
+  	});
+});
 
 app.get('/get', function(req, res, next){
 	var commands = _.split(req.query.body, ' ');
@@ -110,7 +123,7 @@ app.listen(port, '0.0.0.0', function onStart(err) {
 if(true){
 	login({email: user, password: pass}, function callback (err, api) {
 	    if(err) return console.error(err);
-	 	api.setOptions({selfListen: false})
+	 	api.setOptions({selfListen: true})
 	    api.setOptions({listenEvents: true});
 	 
 	    var stopListening = api.listen(function(err, event) {
