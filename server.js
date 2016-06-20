@@ -127,10 +127,10 @@ app.get('/msg', function(req, res, next){
 		    api.sendMessage({body: message}, sendTo.userID);
 			console.log('sending to: ' + sendTo.firstName + ' with message: ' + message);
 		}
+		api.logout(function(){
+			console.log('logged out');
+		});
 	});
-	api.logout(function(){
-		console.log('logged out');
-	})
 	return res.send('message send');
 });
 
