@@ -89,14 +89,8 @@ app.get('/msg', function(req, res, next){
 		res.send('sending to: ' + sendTo.firstName + ' with message: ' + message);
 
 	}
-
 	
-	/*
-	login({email: user, password: pass}, function callback (err, api) {
-		api.sendMessage('');
-	});*/
-	
-})
+});
 
 app.listen(port, '0.0.0.0', function onStart(err) {
 	if (err) {
