@@ -18,7 +18,7 @@ var request = require('request');
 var _ = require('lodash');
 var body_old = "";
 var phonenumber = 4524402011;
-
+var SMS_SENDING = true;
 var facebookfriends;
 
 
@@ -66,6 +66,18 @@ setTimeout(function (){
 
 },1000);
 
+app.get('/deactivate',function(req, res, next){
+	console.log('Frakoblet SMS');
+	sendSMS('Messenger', 'Frakoblet SMS');
+	res.send('message');
+});
+
+app.get('/activate',function(req, res, next){
+	console.log('SMS er tilbage');
+	sendSMS('Messenger', 'SMS er tilbage');
+	res.send('message');
+});
+
 app.get('/reload',function(req, res, next){
 	login({email: user, password: pass}, function callback (err, api) {
   	if(err){
@@ -78,7 +90,13 @@ app.get('/reload',function(req, res, next){
     		console.log(facebookfriends);
   		});
  	});
+ 	sendSMS('Messenger', 'Facebook venner reloaded');
+ 	res.send('message');
 });
+
+
+
+
 
 app.get('/get', function(req, res, next){
 	var commands = _.split(req.query.body, ' ');
@@ -108,7 +126,7 @@ app.get('/msg', function(req, res, next){
 		var message = _.trim(_.join(temp_message, ' '));
 		
 		sendFB(message, sendTo.userID);
-		res.send('sending to: ' + sendTo.firstName + ' with message: ' + message);
+		console.log('sending to: ' + sendTo.firstName + ' with message: ' + message);
 
 	}
 	
@@ -175,7 +193,7 @@ if(true){
 	            	var text = 'from: ' + msgfrom + ' reply id: ' + replyid + ' ' + event.body;
 	            		console.log('from :' + msgfrom);
 	            		console.log(event.body);
-		            	if(true && event.isGroup === false && event.body){
+		            	if(SMS_SENDING && event.isGroup === false && event.body){
 
 							request.post({
 								url:'https://rest.messagebird.com/messages', 
