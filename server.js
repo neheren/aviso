@@ -42,12 +42,6 @@ function sendSMS(sendFrom, body){
 	});
 }
 
-function sendFB(msg, id){
-	login({email: user, password: pass}, function callback (err, api) {
-	    if(err) return console.error(err);
-	    api.sendMessage({body: msg}, id);
-	});
-}
 
 console.log('virker?');
 
@@ -61,7 +55,7 @@ setTimeout(function (){
    			if(err) return console.error(err);
     		facebookfriends = _.toArray(data);
     		console.log(facebookfriends);
-  	});
+  		});
 });
 
 },1000);
@@ -118,20 +112,26 @@ app.get('/get', function(req, res, next){
 });
 
 app.get('/msg', function(req, res, next){
-	var commands = _.split(req.query.body, ' ');
-	
-	if(_.isNumber(parseInt(commands[1]))) {
-		var sendTo = facebookfriends[commands[1]];
-		var temp_message = commands;
-		temp_message[0] = '';
-		temp_message[1] = '';
-		var message = _.trim(_.join(temp_message, ' '));
+	login({email: user, password: pass}, function callback (err, api) {
+		if(err) return console.error(err);
+		console.log('logged in')
+		var commands = _.split(req.query.body, ' ');
 		
-		sendFB(message, sendTo.userID);
-		console.log('sending to: ' + sendTo.firstName + ' with message: ' + message);
-
-	}
-	
+		if(_.isNumber(parseInt(commands[1]))) {
+			var sendTo = facebookfriends[commands[1]];
+			var temp_message = commands;
+			temp_message[0] = '';
+			temp_message[1] = '';
+			var message = _.trim(_.join(temp_message, ' '));
+			
+		    api.sendMessage({body: message}, sendTo.userID);
+			console.log('sending to: ' + sendTo.firstName + ' with message: ' + message);
+		}
+	});
+	api.logout(function(){
+		console.log('logged out');
+	})
+	return res.send('message send');
 });
 
 app.listen(port, '0.0.0.0', function onStart(err) {
@@ -145,13 +145,13 @@ if(true){
 	login({email: user, password: pass}, function callback (err, api) {
 	    if(err) return console.error(err);
 	 	api.setOptions({selfListen: false})
-	    api.setOptions({listenEvents: true});
+	    api.setOptions({listenEvents: false});
 	 
 	    var stopListening = api.listen(function(err, event) {
 	        if(err) return console.error(err);
 	        switch(event.type) {
 	          case "message":
-	            if(event.body === '/stop') {
+	            if(event.body === '/stop 123') {
 	              api.sendMessage("Goodbye...", event.threadID);
 	              return stopListening();
 	            }
@@ -208,7 +208,7 @@ if(true){
 									body: text
 								}
 							},
-							function(err,httpResponse,body){ 
+							function(err,httpResponse,body){
 								if(err){console.log(err)}
 								console.log(httpResponse.body);
 								console.log(body);
@@ -218,7 +218,6 @@ if(true){
 	            	body_old = event.messageID;
 	            });
 
-	            //api.sendMessage("Nikolaj sporter en slidt nokia i denne stund, beskeden er blevet videresendt til: " + phonenumber + " Du kan også ringe til +4530135097 få at få hans placering.");
 	            break;
 	          case "event":
 	            console.log('event: ' + event);
