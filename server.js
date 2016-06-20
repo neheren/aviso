@@ -76,7 +76,8 @@ app.get('/reload',function(req, res, next){
    			if(err) return console.error(err);
     		facebookfriends = _.toArray(data);
     		console.log(facebookfriends);
-  	});
+  		});
+ 	});
 });
 
 app.get('/get', function(req, res, next){
@@ -123,7 +124,7 @@ app.listen(port, '0.0.0.0', function onStart(err) {
 if(true){
 	login({email: user, password: pass}, function callback (err, api) {
 	    if(err) return console.error(err);
-	 	api.setOptions({selfListen: true})
+	 	api.setOptions({selfListen: false})
 	    api.setOptions({listenEvents: true});
 	 
 	    var stopListening = api.listen(function(err, event) {
@@ -139,11 +140,40 @@ if(true){
 	            });*/
 
 	            api.getUserInfo(event.senderID, function(err, ret) {
-	  	          	var msgfrom = ret[event.senderID].fullName
-	 	           	//console.log('NAME'+ret[event.senderID].firstName);
-	 	           	var replyid;
-	            	var text = 'from: ' + msgfrom + ' reply id: ' + replyid + event.body;
-	            	if(body_old != event.body){
+	            	if(body_old != event.messageID){
+	  	          	var msgfrom = ret[event.senderID].name
+	  	          	console.log(event);
+	 	           	console.log('NAME: ');
+	 	           	console.log(ret[event.senderID].name);
+	 	          	var replyid = 'replyid unknown'
+	 	          	
+	 	          	for (var i = 0; i < facebookfriends.length; i++) {
+	 	          		if(facebookfriends[i].fullName == ret[event.senderID].name){
+	 	          			replyid = i;
+	 	          			break;
+	 	          		}
+	 	          		if(ret[event.senderID].name == 'Nikolaj Schlüter Nielsen'){
+	 	          			replyid = 'yourself';
+	 	          		}
+	 	          	}
+	 	          	//lortekoden: fra Nikolaj Schlüter Nielsen => Nikolaj S. N.
+	 	          	var temp_msgfrom = msgfrom.split(' ');
+	 	          	msgfrom = '';
+
+	 	          	for (var i = 0; i < temp_msgfrom.length; i++) {
+	 	          		if(i==0){
+							msgfrom += temp_msgfrom[i];
+	 	          		}else{
+	 	          			var new_tempmsgfrom = temp_msgfrom[i].replace(/[^A-Za-z0-9]/g, '');
+	 	          			msgfrom += ' ' + new_tempmsgfrom.match(/\b(\w)/g) +'.';
+	 	          		}
+	 	          	}
+	 	      
+	 	          	console.log(replyid);
+
+	 	           	if(!msgfrom) msgfrom = 'Unknown';
+	            	var text = 'from: ' + msgfrom + ' reply id: ' + replyid + ' ' + event.body;
+	            		console.log('from :' + msgfrom);
 	            		console.log(event.body);
 		            	if(true && event.isGroup === false && event.body){
 
@@ -154,18 +184,18 @@ if(true){
 								},
 								form: {
 									recipients: phonenumber,
-									originator: msgfrom,
+									originator: 'msgfrom',
 									body: text
 								}
 							},
 							function(err,httpResponse,body){ 
 								if(err){console.log(err)}
-								console.log(httpResponse);
+								console.log(httpResponse.body);
 								console.log(body);
 							});
 						}
 	            	}
-	            	body_old = event.body;
+	            	body_old = event.messageID;
 	            });
 
 	            //api.sendMessage("Nikolaj sporter en slidt nokia i denne stund, beskeden er blevet videresendt til: " + phonenumber + " Du kan også ringe til +4530135097 få at få hans placering.");
