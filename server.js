@@ -48,15 +48,23 @@ function sendFB(msg, id){
 	});
 }
 
+console.log('virker?');
 
-login({email: user, password: pass}, function callback (err, api) {
-  	if(err) return console.error(err);
+setTimeout(function (){
+	login({email: user, password: pass}, function callback (err, api) {
+  	if(err){
+  		nameList();
+  		//console.log(err);
+  		return console.log('trying again');
+  	} 
  	 	api.getFriendsList(function(err, data) {
    			if(err) return console.error(err);
     		facebookfriends = _.toArray(data);
     		console.log(facebookfriends);
   	});
 });
+},1000);
+
 
 app.get('/get', function(req, res, next){
 	var commands = _.split(req.query.body, ' ');
