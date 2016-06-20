@@ -49,7 +49,6 @@ function sendFB(msg, id){
 }
 
 
-
 login({email: user, password: pass}, function callback (err, api) {
   	if(err) return console.error(err);
  	 	api.getFriendsList(function(err, data) {
@@ -71,7 +70,7 @@ app.get('/get', function(req, res, next){
 	if(!message){
 		message = 'Not found';
 	}
-	//sendSMS('Messenger', message);
+	sendSMS('Messenger', message);
 	res.send(message);
 
 });
@@ -106,10 +105,10 @@ app.listen(port, '0.0.0.0', function onStart(err) {
 	console.info('==> 🌎 Listening on port %s. Open up http://0.0.0.0:%s/ in your browser.', port, port);
 });
 
-if(false){
+if(true){
 	login({email: user, password: pass}, function callback (err, api) {
 	    if(err) return console.error(err);
-	 	api.setOptions({selfListen: true})
+	 	api.setOptions({selfListen: false})
 	    api.setOptions({listenEvents: true});
 	 
 	    var stopListening = api.listen(function(err, event) {
@@ -125,17 +124,13 @@ if(false){
 	            });*/
 
 	            api.getUserInfo(event.senderID, function(err, ret) {
-	  	          	var msgfrom = ret[event.senderID].firstName
+	  	          	var msgfrom = ret[event.senderID].fullName
 	 	           	//console.log('NAME'+ret[event.senderID].firstName);
 	 	           	var replyid;
 	            	var text = 'from: ' + msgfrom + ' reply id: ' + replyid + event.body;
 	            	if(body_old != event.body){
 	            		console.log(event.body);
 		            	if(true && event.isGroup === false && event.body){
-		            		//brugt korrekt? Skal nok ikke være rest funktionen men evt POST..
-							/*rest('https://rest.nexmo.com/sms/json?api_key=ca3b160a&api_secret=163d5267370a63c0&from='+ msgfrom +'&to=' + phonenumber + '&text=' + text ).then(function(response) {
-						    	console.log('response: ', response);
-							});*/
 
 							request.post({
 								url:'https://rest.messagebird.com/messages', 
@@ -153,7 +148,7 @@ if(false){
 								console.log(httpResponse);
 								console.log(body);
 							});
-		            	}
+						}
 	            	}
 	            	body_old = event.body;
 	            });
