@@ -10,16 +10,18 @@ const config = require('./webpack.config.js');
 const isDeveloping = process.env.NODE_ENV !== 'production';
 const port = isDeveloping ? 3000 : process.env.PORT;
 const app = express();
-var login = require("facebook-chat-api");
-var user = 'nikolaj.sn@hotmail.com';
-var pass = 'niko123';
 var rest = require('rest');
 var request = require('request');
 var _ = require('lodash');
-var body_old = "";
-var phonenumber = 4524402011;
-var SMS_SENDING = true;
-var facebookfriends;
+
+var faceLogin = require("facebook-chat-api");
+
+var user = 'nikolaj.sn@hotmail.com';
+var pass = 'niko123';
+var oldBody = "";
+var phoneNumber = 4524402011;
+var sendSms = true;
+var facebookFriends;
 
 
 
@@ -30,7 +32,7 @@ function sendSMS(sendFrom, body){
 			Authorization: 'AccessKey live_GOk9sY00eDQ1xC9N0Bx44kg2w'
 		},
 		form: {
-			recipients: phonenumber,
+			recipients: phoneNumber,
 			originator: '+447860039047',
 			body: body
 		}
@@ -43,47 +45,43 @@ function sendSMS(sendFrom, body){
 }
 
 
-console.log('virker?');
-
 setTimeout(function (){
-	login({email: user, password: pass}, function callback (err, api) {
-  	if(err){
-  		//console.log(err);
-  		return console.log('trying again');
-  	} 
- 	 	api.getFriendsList(function(err, data) {
-   			if(err) return console.error(err);
-    		facebookfriends = _.toArray(data);
-    		console.log(facebookfriends);
-  		});
-});
-
-},1000);
+	faceLogin({email: user, password: pass}, function callback (err, api) {
+		if(err){
+			return console.log(err);
+		}
+		console.log('Collecting Facebook friends');
+		api.getFriendsList(function(err, data) {
+			if(err) return console.error(err);
+			facebookFriends = _.toArray(data);
+			console.log("A total amount of " + facebookFriends.length + " Facebook friends has been loaded");
+		});
+	});
+},500);
 
 app.get('/deactivate',function(req, res, next){
-	SMS_SENDING = false;
+	sendSms = false;
 	console.log('Frakoblet SMS');
 	sendSMS('Messenger', 'Frakoblet SMS');
 	res.send('message');
 });
 
 app.get('/activate',function(req, res, next){
-	SMS_SENDING = true;
+	sendSms = true;
 	console.log('SMS er tilbage');
 	sendSMS('Messenger', 'SMS er tilbage');
 	res.send('message');
 });
 
 app.get('/reload',function(req, res, next){
-	login({email: user, password: pass}, function callback (err, api) {
+	faceLogin({email: user, password: pass}, function callback (err, api) {
   	if(err){
-  		//console.log(err);
-  		return console.log('trying again');
+  		return console.log(err);
   	} 
  	 	api.getFriendsList(function(err, data) {
    			if(err) return console.error(err);
-    		facebookfriends = _.toArray(data);
-    		console.log(facebookfriends);
+    		facebookFriends = _.toArray(data);
+    		console.log(facebookFriends);
   		});
  	});
  	sendSMS('Messenger', 'Facebook venner reloaded');
@@ -98,9 +96,9 @@ app.get('/get', function(req, res, next){
 	var commands = _.split(req.query.body, ' ');
 	var message = '';
 
-	for (var i = 0; i < facebookfriends.length; i++) {
-		if(facebookfriends[i].fullName.toLowerCase().indexOf( commands[1].toLowerCase() ) !== -1){
-			message += i + ': ' + facebookfriends[i].fullName + '  ';
+	for (var i = 0; i < facebookFriends.length; i++) {
+		if(facebookFriends[i].fullName.toLowerCase().indexOf( commands[1].toLowerCase() ) !== -1){
+			message += i + ': ' + facebookFriends[i].fullName + '  ';
 		}
 	}
 	if(!message){
@@ -112,41 +110,44 @@ app.get('/get', function(req, res, next){
 });
 
 app.get('/msg', function(req, res, next){
-	login({email: user, password: pass}, function callback (err, api) {
+	faceLogin({email: user, password: pass}, function callback (err, api) {
 		if(err) return console.error(err);
-		console.log('logged in')
+		console.log('Logged in');
 		var commands = _.split(req.query.body, ' ');
 		
 		if(_.isNumber(parseInt(commands[1]))) {
-			var sendTo = facebookfriends[commands[1]];
+			var sendTo = facebookFriends[commands[1]];
 			var temp_message = commands;
 			temp_message[0] = '';
 			temp_message[1] = '';
 			var message = _.trim(_.join(temp_message, ' '));
-			
+			api.setOptions('')
 		    api.sendMessage({body: message}, sendTo.userID);
-			console.log('sending to: ' + sendTo.firstName + ' with message: ' + message);
+			console.log('Sending to: ' + sendTo.firstName + ' with message: ' + message);
 		}
 		api.logout(function(){
-			console.log('logged out');
+			console.log('Logged out');
 		});
 	});
-	return res.send('message send');
+	return res.send('Message send');
 });
 
 app.listen(port, '0.0.0.0', function onStart(err) {
 	if (err) {
 		console.log(err);
 	}
-	console.info('==> 🌎 Listening on port %s. Open up http://0.0.0.0:%s/ in your browser.', port, port);
+	console.info('Schlüt SMS ☎️  > 📱  Listening on port %s', port);
 });
 
-if(true){
-	login({email: user, password: pass}, function callback (err, api) {
+const listen = true;
+
+if(listen) {
+	faceLogin({email: user, password: pass}, function callback (err, api) {
 	    if(err) return console.error(err);
-	 	api.setOptions({selfListen: false})
+	 	api.setOptions({selfListen: true})
 	    api.setOptions({listenEvents: false});
-	 
+	 	api.setOptions({updatePresence: true});
+		console.log('Now listening.')
 	    var stopListening = api.listen(function(err, event) {
 	        if(err) return console.error(err);
 	        switch(event.type) {
@@ -160,15 +161,15 @@ if(true){
 	            });*/
 
 	            api.getUserInfo(event.senderID, function(err, ret) {
-	            	if(body_old != event.messageID){
+	            	if(oldBody != event.messageID){
 	  	          	var msgfrom = ret[event.senderID].name
 	  	          	console.log(event);
 	 	           	console.log('NAME: ');
 	 	           	console.log(ret[event.senderID].name);
 	 	          	var replyid = 'replyid unknown'
 	 	          	
-	 	          	for (var i = 0; i < facebookfriends.length; i++) {
-	 	          		if(facebookfriends[i].fullName == ret[event.senderID].name){
+	 	          	for (var i = 0; i < facebookFriends.length; i++) {
+	 	          		if(facebookFriends[i].fullName == ret[event.senderID].name){
 	 	          			replyid = i;
 	 	          			break;
 	 	          		}
@@ -192,10 +193,10 @@ if(true){
 	 	          	console.log(replyid);
 
 	 	           	if(!msgfrom) msgfrom = 'Unknown';
-	            	var text = 'from: ' + msgfrom + ' reply id: ' + replyid + ' ' + event.body;
+	            	var text = 'From: ' + msgfrom + ' reply id: ' + replyid + ' ' + event.body;
 	            		console.log('from :' + msgfrom);
 	            		console.log(event.body);
-		            	if(SMS_SENDING && event.isGroup === false && event.body){
+		            	if(sendSms && event.isGroup === false && event.body){
 
 							request.post({
 								url:'https://rest.messagebird.com/messages', 
@@ -203,7 +204,7 @@ if(true){
 									Authorization: 'AccessKey live_GOk9sY00eDQ1xC9N0Bx44kg2w'
 								},
 								form: {
-									recipients: phonenumber,
+									recipients: phoneNumber,
 									originator: '+447860039047',
 									body: text
 								}
@@ -215,7 +216,7 @@ if(true){
 							});
 						}
 	            	}
-	            	body_old = event.messageID;
+	            	oldBody = event.messageID;
 	            });
 
 	            break;
