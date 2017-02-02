@@ -13,15 +13,30 @@ const app = express();
 var rest = require('rest');
 var request = require('request');
 var _ = require('lodash');
-
+var readlineSync = require('readline-sync');
 var faceLogin = require("facebook-chat-api");
 
 var user = 'nikolaj.sn@hotmail.com';
-var pass = 'niko123';
 var oldBody = "";
 var phoneNumber = 4524402011;
 var sendSms = true;
 var facebookFriends;
+var listen = true;
+
+var enteredUser = readlineSync.question('Please enter facebook username: ');
+if(enteredUser) {
+	user = enteredUser;
+}else {
+	console.log('Using default user: ' + user)
+}
+var pass = readlineSync.question('Please enter password: ', {hideEchoBack: true});
+
+var enteredNumber = readlineSync.question('Please enter phone number: ');
+if(enteredNumber) {
+	phoneNumber = enteredNumber;
+}else {
+	console.log('Using default phone number: ' + phoneNumber);
+}
 
 
 
@@ -45,19 +60,14 @@ function sendSMS(sendFrom, body){
 }
 
 
-setTimeout(function (){
-	faceLogin({email: user, password: pass}, function callback (err, api) {
-		if(err){
-			return console.log(err);
-		}
-		console.log('Collecting Facebook friends');
-		api.getFriendsList(function(err, data) {
-			if(err) return console.error(err);
-			facebookFriends = _.toArray(data);
-			console.log("A total amount of " + facebookFriends.length + " Facebook friends has been loaded");
-		});
+function collectFriends(err, api){
+	console.log('Collecting Facebook friends');
+	api.getFriendsList(function(err, data) {
+		if(err) return console.error(err);
+		facebookFriends = _.toArray(data);
+		console.log("A total amount of " + facebookFriends.length + " Facebook friends has been loaded");
 	});
-},500);
+}
 
 app.get('/deactivate',function(req, res, next){
 	sendSms = false;
@@ -73,18 +83,14 @@ app.get('/activate',function(req, res, next){
 	res.send('message');
 });
 
-app.get('/reload',function(req, res, next){
+app.get('/reload',function(req, res, next){ //untested.
+	var oldfriendAmount = facebookFriends.length;
 	faceLogin({email: user, password: pass}, function callback (err, api) {
-  	if(err){
-  		return console.log(err);
-  	} 
- 	 	api.getFriendsList(function(err, data) {
-   			if(err) return console.error(err);
-    		facebookFriends = _.toArray(data);
-    		console.log(facebookFriends);
-  		});
+		collectFriends(err,api);
  	});
- 	sendSMS('Messenger', 'Facebook venner reloaded');
+	var newfriendAmount = facebookFriends.length;
+
+ 	sendSMS('Messenger', 'Facebook venner du har fået ' + newfriendAmount - oldfriendAmount + ' nye ven(ner)!');
  	res.send('message');
 });
 
@@ -139,7 +145,20 @@ app.listen(port, '0.0.0.0', function onStart(err) {
 	console.info('Schlüt SMS ☎️  > 📱  Listening on port %s', port);
 });
 
-const listen = true;
+function shrinkName(msgfrom) {
+	var temp_msgfrom = msgfrom.split(' ');
+	msgfrom = '';
+	for (var i = 0; i < temp_msgfrom.length; i++) {
+		if(i==0){
+			msgfrom += temp_msgfrom[i];
+		}else{
+			var new_tempmsgfrom = temp_msgfrom[i].replace(/[^A-Za-z0-9]/g, '');
+			msgfrom += ' ' + new_tempmsgfrom.match(/\b(\w)/g) +'.';
+		}
+	}
+	return msgfrom;
+}
+
 
 if(listen) {
 	faceLogin({email: user, password: pass}, function callback (err, api) {
@@ -147,13 +166,14 @@ if(listen) {
 	 	api.setOptions({selfListen: true})
 	    api.setOptions({listenEvents: false});
 	 	api.setOptions({updatePresence: true});
+		collectFriends(err, api); //Into var: facebookFriends.
 		console.log('Now listening.')
 	    var stopListening = api.listen(function(err, event) {
 	        if(err) return console.error(err);
 	        switch(event.type) {
 	          case "message":
 	            if(event.body === '/stop 123') {
-	              api.sendMessage("Goodbye...", event.threadID);
+	              api.sendMessage("Goodbye... ", event.threadID);
 	              return stopListening();
 	            }
 	            /*api.markAsRead(event.threadID, function(err) {
@@ -162,10 +182,9 @@ if(listen) {
 
 	            api.getUserInfo(event.senderID, function(err, ret) {
 	            	if(oldBody != event.messageID){
-	  	          	var msgfrom = ret[event.senderID].name
+	  	          	var msgFrom = ret[event.senderID].name
 	  	          	console.log(event);
-	 	           	console.log('NAME: ');
-	 	           	console.log(ret[event.senderID].name);
+	 	           	console.log('Full name: ' + ret[event.senderID].name);
 	 	          	var replyid = 'replyid unknown'
 	 	          	
 	 	          	for (var i = 0; i < facebookFriends.length; i++) {
@@ -177,27 +196,14 @@ if(listen) {
 	 	          			replyid = 'yourself';
 	 	          		}
 	 	          	}
-	 	          	//lortekoden: fra Nikolaj Schlüter Nielsen => Nikolaj S. N.
-	 	          	var temp_msgfrom = msgfrom.split(' ');
-	 	          	msgfrom = '';
+					msgFrom = (msgFrom) ? shrinkName(msgFrom) : 'Unknown';
+	 	          	console.log({replyid});
 
-	 	          	for (var i = 0; i < temp_msgfrom.length; i++) {
-	 	          		if(i==0){
-							msgfrom += temp_msgfrom[i];
-	 	          		}else{
-	 	          			var new_tempmsgfrom = temp_msgfrom[i].replace(/[^A-Za-z0-9]/g, '');
-	 	          			msgfrom += ' ' + new_tempmsgfrom.match(/\b(\w)/g) +'.';
-	 	          		}
-	 	          	}
-	 	      
-	 	          	console.log(replyid);
-
-	 	           	if(!msgfrom) msgfrom = 'Unknown';
-	            	var text = 'From: ' + msgfrom + ' reply id: ' + replyid + ' ' + event.body;
-	            		console.log('from :' + msgfrom);
-	            		console.log(event.body);
+	            	var text = 'From: ' + msgFrom + ' reply id: ' + replyid + ' ' + event.body;
+	            		console.log('Shrinked name: ' + msgFrom);
+	            		console.log('Message: ' + event.body);
 		            	if(sendSms && event.isGroup === false && event.body){
-
+							console.log('Sending SMS');
 							request.post({
 								url:'https://rest.messagebird.com/messages', 
 								headers: {
@@ -214,6 +220,8 @@ if(listen) {
 								console.log(httpResponse.body);
 								console.log(body);
 							});
+						}else{
+							console.log('Not sending SMS. ');
 						}
 	            	}
 	            	oldBody = event.messageID;

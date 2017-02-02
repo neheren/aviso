@@ -20,7 +20,7 @@
   "homepage": "https://github.com/christianalfoni/webpack-express-boilerplate",
   "scripts": {
     "test": "",
-    "deploy": "./deploy.sh", 
+    "deploy": "./deploy.sh",
     "start": "node server",
     "build": "rimraf dist && set NODE_ENV=production && webpack --config ./webpack.production.config.js --progress --profile --colors",
     "eslint": "eslint ."
@@ -35,6 +35,7 @@
     "react-dom": "^0.14.3",
     "react-redux": "^4.4.5",
     "react-router": "^2.4.1",
+    "readline-sync": "^1.4.6",
     "redux": "^3.5.2",
     "redux-thunk": "^2.1.0",
     "request": "^2.72.0",
