@@ -14,7 +14,7 @@ var rest = require('rest');
 var request = require('request');
 var _ = require('lodash');
 var readlineSync = require('readline-sync');
-var faceLogin = require("facebook-chat-api");
+var faceLogin = require('facebook-chat-api');
 
 var user = 'nikolaj.sn@hotmail.com';
 var oldBody = "";
@@ -40,7 +40,7 @@ if(enteredNumber) {
 
 
 
-function sendSMS(sendFrom, body){
+function sendSMS(sendFrom, body) {
 	request.post({
 		url:'https://rest.messagebird.com/messages', 
 		headers: {
@@ -52,15 +52,27 @@ function sendSMS(sendFrom, body){
 			body: body
 		}
 	},
-	function(err,httpResponse,body){ 
+	function(err,httpResponse,body) { 
 		if(err){console.log(err)}
-		console.log(httpResponse);
+		//console.log(httpResponse);
 		console.log(body);
 	});
 }
 
+app.get('/unread', function(req, res) {
+	faceLogin({email: user, password: pass}, function (err, api) {
+		if(err) return res.send(err);
+		api.getThreadList(0, 20, 'inbox', function (err, arr) {
+			if(err) return res.send(err);
+			unread = arr.filter(thread => (thread.unreadCount > 0 && thread.participants.length < 3));
+			res.send(unread);
+			//sendSMS('Messenger', "test");
+		});
+	});
+})
 
-function collectFriends(err, api){
+
+function collectFriends(err, api) {
 	console.log('Collecting Facebook friends');
 	api.getFriendsList(function(err, data) {
 		if(err) return console.error(err);
@@ -69,18 +81,18 @@ function collectFriends(err, api){
 	});
 }
 
-app.get('/deactivate',function(req, res, next){
+app.get('/deactivate',function(req, res, next) {
 	sendSms = false;
 	console.log('Frakoblet SMS');
 	sendSMS('Messenger', 'Frakoblet SMS');
-	res.send('message');
+	res.send('Message has been sent.');
 });
 
-app.get('/activate',function(req, res, next){
+app.get('/activate',function(req, res, next) {
 	sendSms = true;
 	console.log('SMS er tilbage');
 	sendSMS('Messenger', 'SMS er tilbage');
-	res.send('message');
+	res.send('Message has been sent.');
 });
 
 app.get('/reload',function(req, res, next){ //untested.
@@ -90,15 +102,15 @@ app.get('/reload',function(req, res, next){ //untested.
  	});
 	var newfriendAmount = facebookFriends.length;
 
- 	sendSMS('Messenger', 'Facebook venner du har fået ' + newfriendAmount - oldfriendAmount + ' nye ven(ner)!');
- 	res.send('message');
+	sendSMS('Messenger', 'Du har fået ' + (newfriendAmount - oldfriendAmount) + ' nye ven(ner)');
+ 	res.send('Message has been sent.');
 });
 
 
 
 
 
-app.get('/get', function(req, res, next){
+app.get('/get', function(req, res, next) {
 	var commands = _.split(req.query.body, ' ');
 	var message = '';
 
@@ -112,8 +124,8 @@ app.get('/get', function(req, res, next){
 	}
 	sendSMS('Messenger', message);
 	res.send(message);
-
 });
+
 
 app.get('/msg', function(req, res, next){
 	faceLogin({email: user, password: pass}, function callback (err, api) {
@@ -139,9 +151,7 @@ app.get('/msg', function(req, res, next){
 });
 
 app.listen(port, '0.0.0.0', function onStart(err) {
-	if (err) {
-		console.log(err);
-	}
+	if (err) console.log(err);
 	console.info('Schlüt SMS ☎️  > 📱  Listening on port %s', port);
 });
 
