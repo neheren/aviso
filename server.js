@@ -1,11 +1,12 @@
-/* eslint no-console: 0 */
 
+/* eslint no-console: 0 */
 const path = require('path');
 const express = require('express');
 const webpack = require('webpack');
 const webpackMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
 const config = require('./webpack.config.js');
+const emojiText = require('emoji-text');
 
 const isDeveloping = process.env.NODE_ENV !== 'production';
 const port = isDeveloping ? 3000 : process.env.PORT;
@@ -16,12 +17,15 @@ var _ = require('lodash');
 var readlineSync = require('readline-sync');
 var faceLogin = require('facebook-chat-api');
 
+var markAsRead = true;
 var user = 'nikolaj.sn@hotmail.com';
 var oldBody = "";
 var phoneNumber = 4524402011;
 var sendSms = true;
 var facebookFriends;
 var listen = true;
+var stopCode = 'stop123';
+
 
 var enteredUser = readlineSync.question('Please enter facebook username: ');
 if(enteredUser) {
@@ -65,8 +69,11 @@ app.get('/unread', function(req, res) {
 		api.getThreadList(0, 20, 'inbox', function (err, arr) {
 			if(err) return res.send(err);
 			unread = arr.filter(thread => (thread.unreadCount > 0 && thread.participants.length < 3));
+
+			unread = _.map(unread, (msg) => msg.snippet);
+
 			res.send(unread);
-			//sendSMS('Messenger', "test");
+			sendSMS('Messenger', "");
 		});
 	});
 })
@@ -131,9 +138,8 @@ app.get('/msg', function(req, res, next){
 	faceLogin({email: user, password: pass}, function callback (err, api) {
 		if(err) return console.error(err);
 		console.log('Logged in');
-		var commands = _.split(req.query.body, ' ');
-		
-		if(_.isNumber(parseInt(commands[1]))) {
+		var commands = _.split(req.query.body, ' '); 
+		if(_.isNumber(parseInt(commands[1]))) { //get -> number <- 
 			var sendTo = facebookFriends[commands[1]];
 			var temp_message = commands;
 			temp_message[0] = '';
@@ -159,9 +165,9 @@ function shrinkName(msgfrom) {
 	var temp_msgfrom = msgfrom.split(' ');
 	msgfrom = '';
 	for (var i = 0; i < temp_msgfrom.length; i++) {
-		if(i==0){
+		if(i == 0) {
 			msgfrom += temp_msgfrom[i];
-		}else{
+		}else {
 			var new_tempmsgfrom = temp_msgfrom[i].replace(/[^A-Za-z0-9]/g, '');
 			msgfrom += ' ' + new_tempmsgfrom.match(/\b(\w)/g) +'.';
 		}
@@ -171,28 +177,32 @@ function shrinkName(msgfrom) {
 
 
 if(listen) {
-	faceLogin({email: user, password: pass}, function callback (err, api) {
+	faceLogin({ email: user, password: pass }, function callback (err, api) {
 	    if(err) return console.error(err);
-	 	api.setOptions({selfListen: true})
-	    api.setOptions({listenEvents: false});
-	 	api.setOptions({updatePresence: true});
+	 	api.setOptions({ selfListen: true })
+	    api.setOptions({ listenEvents: false });
+	 	api.setOptions({ updatePresence: true });
 		collectFriends(err, api); //Into var: facebookFriends.
 		console.log('Now listening.')
 	    var stopListening = api.listen(function(err, event) {
-	        if(err) return console.error(err);
-	        switch(event.type) {
+	        if (err) return console.error(err);
+	        switch (event.type) {
 	          case "message":
-	            if(event.body === '/stop 123') {
+	            
+				if(event.body === stopCode) {
 	              api.sendMessage("Goodbye... ", event.threadID);
 	              return stopListening();
 	            }
-	            /*api.markAsRead(event.threadID, function(err) {
-	              if(err) console.log(err);
-	            });*/
+	            
+				if(markAsRead){
+					api.markAsRead(event.threadID, function(err) {
+						if(err) console.log(err);
+					});
+				}
 
 	            api.getUserInfo(event.senderID, function(err, ret) {
-	            	if(oldBody != event.messageID){
-	  	          	var msgFrom = ret[event.senderID].name
+	            	if(oldBody != event.messageID) {
+	  	          	var msgFrom = ret[event.senderID].name;
 	  	          	console.log(event);
 	 	           	console.log('Full name: ' + ret[event.senderID].name);
 	 	          	var replyid = 'replyid unknown'
@@ -211,7 +221,9 @@ if(listen) {
 
 	            	var text = 'From: ' + msgFrom + ' reply id: ' + replyid + ' ' + event.body;
 	            		console.log('Shrinked name: ' + msgFrom);
-	            		console.log('Message: ' + event.body);
+						
+						console.log('Message: ' + event.body);
+						
 		            	if(sendSms && event.isGroup === false && event.body){
 							console.log('Sending SMS');
 							request.post({

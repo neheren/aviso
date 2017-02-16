@@ -1,4 +1,4 @@
-FROM node:6.2.1
+FROM node:7.2.0
 
 RUN mkdir /app
 ADD package.json /app
