@@ -238,12 +238,12 @@ if(listen) {
 								}
 							},
 							function(err,httpResponse,body){
-								if(err){console.log(err)}
+								if(err) {console.log(err)}
 								console.log(httpResponse.body);
 								console.log(body);
 							});
-						}else{
-							console.log('Not sending SMS. ');
+						}else {
+							console.log('Not sending SMS.');
 						}
 	            	}
 	            	oldBody = event.messageID;
