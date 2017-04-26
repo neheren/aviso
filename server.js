@@ -68,7 +68,7 @@ app.get('/', function(req, res) {
 		<H1> AVISO by Schlüter </H1>
 		Friends loaded: ${facebookFriends.length} <br>
 		Status: ${status} <br>
-		User: ${user} <br>
+		User: ${user.slice(0,10)} <br>
 		<br>
 		<br>
 		<h3>HELP: </h3>
