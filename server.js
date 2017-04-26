@@ -65,14 +65,13 @@ function sendSMS(sendFrom, body) {
 
 app.get('/', function(req, res) {
 	return res.send(`
-		Status:
-		Friends loaded: ${facebookFriends}
-		Status: ${status}
-
+		<H1> AVISO by Schlüter </H1>
+		Friends loaded: ${facebookFriends.length} <br>
+		Status: ${status} <br>
+		User: ${user} <br>
 		<br>
 		<br>
-		HELP:
-		<br>
+		<h3>HELP: </h3>
 		get <search>: lists id's of all facebook contacts with the given name.
 		<br>
 		msg <id>: messages facebook friends using their id followed by a message
@@ -114,6 +113,7 @@ function collectFriends(err, api) {
 app.get('/deactivate',function(req, res, next) {
 	sendSms = false;
 	stopListening();
+	setTimeout(() => status = 'Logged out', 4000); 
 	console.log('Frakoblet SMS');
 	console.log('Logget af Facebook.');
 	sendSMS('Messenger', 'Frakoblet SMS');
@@ -184,7 +184,7 @@ app.get('/msg', function(req, res, next){
 
 app.listen(port, '0.0.0.0', function onStart(err) {
 	if (err) console.log(err);
-	console.info('Schlüt SMS ☎️  > 📱  Listening on port %s', port);
+	console.info('AVISO by Schlüter ☎️  > 📱  Listening on port %s', port);
 });
 
 function shrinkName(msgfrom) {
@@ -218,7 +218,11 @@ function loginAndListen() {
 			collectFriends(err, api); //Into var: facebookFriends.
 			console.log('Now listening.')
 			stopListening = api.listen(function(err, event) {
-				if (err) return console.error(err);
+				if (err) {
+					status = err;
+					return console.error(err);
+				}
+				status = 'OK';
 				switch (event.type) {
 				case "message":
 					
