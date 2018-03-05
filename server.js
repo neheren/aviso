@@ -17,7 +17,7 @@ var _ = require('lodash');
 var readlineSync = require('readline-sync');
 var faceLogin = require('facebook-chat-api');
 
-var markAsRead = true;
+var markAsRead = false;
 var user = 'nikolaj.sn@hotmail.com';
 var oldBody = "";
 var phoneNumber = 4524402011;
@@ -26,6 +26,7 @@ var facebookFriends;
 var listen = true;
 var stopCode = 'stop123';
 var status = '';
+var lastMessenger = 224;
 
 var enteredUser = readlineSync.question('Please enter facebook username: ');
 if(enteredUser) {
@@ -43,30 +44,35 @@ if(enteredNumber) {
 }
 
 
-
+var oldmessage;
 function sendSMS(sendFrom, body) {
-	request.post({
-		url:'https://rest.messagebird.com/messages', 
-		headers: {
-			Authorization: 'AccessKey live_GOk9sY00eDQ1xC9N0Bx44kg2w'
+	if(body != oldmessage) {
+		oldmessage = body;
+		request.post({
+			url:'https://rest.messagebird.com/messages', 
+			headers: {
+				Authorization: 'AccessKey live_GOk9sY00eDQ1xC9N0Bx44kg2w'
+			},
+			form: {
+				recipients: phoneNumber,
+				originator: '+447860039047',
+				body: body
+			}
 		},
-		form: {
-			recipients: phoneNumber,
-			originator: '+447860039047',
-			body: body
-		}
-	},
-	function(err,httpResponse,body) { 
-		if(err){console.log(err)}
-		//console.log(httpResponse);
-		console.log(body);
-	});
+		function(err,httpResponse,body) { 
+			if(err){console.log(err)}
+			console.log(body);
+		});
+	}else{
+		console.log('Message is duplicate. Not sending. Duplicate: ' + body + 'old: ' + oldmessage);
+	}
 }
 
 app.get('/', function(req, res) {
 	return res.send(`
 		<H1> AVISO by Schlüter </H1>
 		Friends loaded: ${facebookFriends.length} <br>
+		Latest messenger: ${facebookFriends[lastMessenger]} <br>
 		Status: ${status} <br>
 		User: ${user.slice(0,10)} <br>
 		<br>
@@ -100,6 +106,11 @@ app.get('/unread', function(req, res) {
 	});
 });
 
+app.get('/seen', function(req, res) {
+	markAsRead = !markAsRead;
+	sendSms()
+});
+
 
 function collectFriends(err, api) {
 	console.log('Collecting Facebook friends');
@@ -122,6 +133,7 @@ app.get('/deactivate',function(req, res, next) {
 
 app.get('/activate',function(req, res, next) {
 	sendSms = true;
+	stopListening();
 	loginAndListen();
 	console.log('SMS er tilbage');
 	sendSMS('Messenger', 'SMS er tilbage');
@@ -148,7 +160,7 @@ app.get('/get', function(req, res, next) {
 	var message = '';
 
 	for (var i = 0; i < facebookFriends.length; i++) {
-		if(facebookFriends[i].fullName.toLowerCase().indexOf( commands[1].toLowerCase() ) !== -1){
+		if(facebookFriends[i].fullName.toLowerCase().indexOf(commands[1].toLowerCase() ) !== -1){
 			message += i + ': ' + facebookFriends[i].fullName + '  ';
 		}
 	}
@@ -165,8 +177,9 @@ app.get('/msg', function(req, res, next){
 		if(err) return console.error(err);
 		console.log('Logged in');
 		var commands = _.split(req.query.body, ' '); 
-		if(_.isNumber(parseInt(commands[1]))) { //get -> number <- 
+		if(!_.isNaN(parseInt(commands[1]))) { // if the first word is not NaN when parsed to int -> meaning
 			var sendTo = facebookFriends[commands[1]];
+			console.log('Number found!');
 			var temp_message = commands;
 			temp_message[0] = '';
 			temp_message[1] = '';
@@ -174,6 +187,16 @@ app.get('/msg', function(req, res, next){
 			api.setOptions('')
 		    api.sendMessage({body: message}, sendTo.userID);
 			console.log('Sending to: ' + sendTo.firstName + ' with message: ' + message);
+		}else{ // if no number is set. 
+			var sendTo = facebookFriends[lastMessenger];
+			console.log(sendTo);
+			var temp_message = commands;
+			temp_message[0] = '';
+			//temp_message[1] = '';
+			var message = _.trim(_.join(temp_message, ' '));
+			console.log({msg: message, sending: sendTo});
+			api.setOptions('')
+		    api.sendMessage({body: message}, sendTo.userID);
 		}
 		api.logout(function(){
 			console.log('Logged out');
@@ -206,17 +229,20 @@ var stopListening;
 
 function loginAndListen() {
 	if(listen) {
-		faceLogin({ email: user, password: pass }, function callback (err, api) {
+		faceLogin({ email: user, password: pass, forceLogin: true }, function callback (err, api) {
 			if(err) {
 				status = err;
 				return console.error(err);
 			}
-			api.setOptions({ selfListen: false })
-			api.setOptions({ listenEvents: false });
-			api.setOptions({ updatePresence: true });
-			api.setOptions({ logLevel: 'warn' });
-			collectFriends(err, api); //Into var: facebookFriends.
-			console.log('Now listening.')
+			api.setOptions({ 
+				selfListen: false,
+				listenEvents: false,
+				updatePresence: true,
+				logLevel: 'warn',
+				forceLogin: true 
+			});
+			collectFriends(err, api); // Into var: facebookFriends.
+			console.log('Now listening.');
 			stopListening = api.listen(function(err, event) {
 				if (err) {
 					status = err;
@@ -225,10 +251,9 @@ function loginAndListen() {
 				status = 'OK';
 				switch (event.type) {
 				case "message":
-					
 					if(event.body === stopCode) {
 						api.sendMessage("Goodbye... ", event.threadID);
-						status = 'stopped.'
+						status = 'Stopped'
 						return stopListening();
 					}
 					
@@ -246,22 +271,26 @@ function loginAndListen() {
 						var msgFrom = ret[event.senderID].name;
 						console.log(event);
 						console.log('Full name: ' + ret[event.senderID].name);
-						var replyid = 'replyid unknown'
+						var replyid = 'replyid unknown';
 						
 						for (var i = 0; i < facebookFriends.length; i++) {
-							if(facebookFriends[i].fullName == ret[event.senderID].name){
+							if(facebookFriends[i].fullName == ret[event.senderID].name) {
 								replyid = i;
 								break;
 							}
-							if(ret[event.senderID].name == 'Nikolaj Schlüter Nielsen'){
+							if(ret[event.senderID].name == 'Nikolaj Schlüter Nielsen') {
 								replyid = 'Yourself';
 							}
 						}
-						msgFrom = (msgFrom) ? shrinkName(msgFrom) : 'Unknown';
+
+						lastMessenger = replyid;
+						console.log({lastMessenger: facebookFriends[lastMessenger]});
+
+						msgFrom = (msgFrom) ? shrinkName(msgFrom) : 'Unknown';	
 						console.log({replyid});
 
-						var text = 'From: ' + msgFrom + ' reply id: ' + replyid + ' ' + event.body;
-							console.log('Shrinked name: ' + msgFrom);
+						var text = 'From ' + msgFrom + ' ID: ' + replyid + ' ' + event.body;
+							// console.log('Shrinked name: ' + msgFrom);
 							
 							console.log('Message: ' + event.body);
 							
@@ -278,8 +307,7 @@ function loginAndListen() {
 										originator: '+447860039047',
 										body: text
 									}
-								},
-								function(err,httpResponse,body){
+								}, function(err, httpResponse, body) {
 									if(err) {
 										console.log(err)
 										status = err;
@@ -296,7 +324,7 @@ function loginAndListen() {
 
 					break;
 				case "event":
-					console.log('event: ' + event);
+					console.log('Event: ' + event);
 					break;
 				}
 			});
