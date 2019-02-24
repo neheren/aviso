@@ -1,5 +1,5 @@
 # AVISO - connecting Facebook to sms
-## Connect old phones to facebook using 
+## Connect old phones to facebook using this application together with message bird
 
 The application is based on a node server using several npm modules. 
 I use the message bird API together with a unofficial facebook API to forward any incoming facebook message to a given phone number.
