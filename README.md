@@ -1,4 +1,4 @@
-# webpack-express-boilerplate
+# AVISO - connecting Facebook to sms
 ## Connect old phones to facebook using 
 
 The application is based on a node server using several npm modules. 
