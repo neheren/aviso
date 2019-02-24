@@ -1,38 +1,28 @@
 # webpack-express-boilerplate
-A boilerplate for running a Webpack workflow in Node express
+## Connect old phones to facebook using 
 
-Please read the following article: [The ultimate Webpack setup](http://www.christianalfoni.com/articles/2015_04_19_The-ultimate-webpack-setup) to know more about this boilerplate.
+The application is based on a node server using several npm modules. 
+I use the message bird API together with a unofficial facebook API to forward any incoming facebook message to a given phone number.
 
-## Major update to project
-Inspired by [this project](https://github.com/vesparny/react-kickstart) and the evolving of [react-transform](https://github.com/gaearon/react-transform-boilerplate) and [CSS Modules]((http://glenmaddern.com/articles/css-modules)), this project has gotten a major upgrade.
+When the facebook message has been received via SMS, one is able to answer using a given id. The id goes from 0 to the amount of facebook friends present. It is also possible to search for these ids, by sending and SMS the messenger, see example:
 
-**NOTE!** Use the latest version of Node, 4.x.x.
+To send a facebook message via SMS, you start of by searching for an id by typing ‘get'. e.g:
 
-## Install and Running
-`git clone https://github.com/christianalfoni/webpack-express-boilerplate.git`
+[SMS from 447860039047]
+Nikolaj Sørensen - 116
+Nikolaj Schlüter - 302
+Nikolaj Schildt - 302
 
-or just export the files:
+Now one is able to send a facebook message. e.g:
 
-`svn export https://github.com/christianalfoni/webpack-express-boilerplate/trunk ./dir`
+[SMS to 447860039047]
+msg 302 Hello my friend, what’s going on back home?
 
-1. cd webpack-express-boilerplate
-2. npm install
-3. npm start
-4. navigate to http://localhost:3000 in your browser of choice.
+And he might answer:
 
+[SMS from 447860039047]
+Message from Nikolaj S. N.
+Yo! Nothing really I’m just chilling on facebook.
+Answer id: 302
 
-## Overview
-
-### React by default
-The project runs with React by default and hot replacement of changes to the modules. Currently it is on 0.14.3.
-
-### CSS Modules
-CSS files loaded into components are locally scoped and you can point to class names with javascript. You can also compose classes together, also from other files. These are also hot loaded. Read more about them [here](http://glenmaddern.com/articles/css-modules).
-
-To turn off CSS Modules remove it from the `webpack.config.js` file.
-
-### Babel and Linting
-Both Node server and frontend code runs with Babel. And all of it is linted. With atom you install the `linter` package, then `linter-eslint` and `linter-jscs`. You are covered. Also run `npm run eslint` or `npm run jscs` to verify all files. I would recommend installing `language-babel` package too for syntax highlighting
-
-### Beautify
-With a beautify package installed in your editor it will also do that
+This way, you can keep yorself up-to-date even though you're sporting the old Nokia ;)
